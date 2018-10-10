@@ -15,18 +15,42 @@
 <script>
 
     var VSHADER_SOURCE =
+
         'const float PI = 3.141592653589793;\n' +
+        '  vec4 _Q = vec4(0.1,0.2,0.2,0.1);\n' +
+        '  vec4 _A = vec4(0.2,0.2,0.4,0.1);\n' +
+        '  vec4 _S =  vec4(0.2,0.4,0.1,0.3);\n' +
+        '  vec4 _Dx =  vec4(0.2,0.4,0.1,0.3);\n' +
+        '  vec4 _Dz =  vec4(0.3,0.2,0.3,0.2);\n' +
+        '  vec4 _L=vec4(1,0.5,0.5,1);\n' +
         'precision mediump float;\n' +
         'attribute vec4 a_Position;\n' +
         'attribute float a_angel;\n' +
         'uniform mat4 mvpMatrix;\n' +
         'attribute vec2 a_TexCoord;\n' +
         'varying vec2 v_TexCoord;\n' +
-        'void main() {\n' +
-        '  gl_Position =mvpMatrix* a_Position;\n' +
-        '  v_TexCoord =a_TexCoord;\n' +
-        '  gl_Position.y = gl_Position.y+ sin(a_angel*PI*0.1+((a_Position.x*2.1)+1.0))*0.2;\n' +
-        ' gl_Position.y = gl_Position.y+(a_angel-a_angel);\n' +
+
+
+        'vec3 CalculateWavesDisplacement(vec3 origin) { \n' +
+        '  vec3 rtn =vec3(origin.x,origin.y,origin.z);\n'+
+        '  vec4 w =2.0 * PI / _L;\n' +
+        '  vec4 psi=2.0 *_S * 2.0 * PI / _L;\n' +
+        '  vec4 phase= w * _Dx *  origin.x + w * _Dz *  origin.y+ psi * a_angel;\n' +
+        '  vec4 sinp=vec4(sin(phase.x), sin(phase.y), sin(phase.z), sin(phase.w)) ;\n' +
+        '  vec4 cosp=vec4(cos(phase.x), cos(phase.y), cos(phase.z), cos(phase.w)) ;\n' +
+        '  rtn.x =origin.x- dot(_Q*_A*_Dx, cosp);\n' +
+        '  rtn.y =origin.y+ dot(_Q*_A*_Dz, cosp);\n' +
+        '  rtn.z =origin.z-dot(_A, sinp);\n' +
+            ' return rtn;\n' +
+        '}\n'+
+
+    'void main() {\n' +
+
+        '  gl_Position = a_Position;\n' +
+        '  //gl_Position.z = gl_Position.z+ sin(a_angel*PI*0.1+((a_Position.x*2.1)+1.0))*0.2;\n' +
+        '  gl_Position.xyz =CalculateWavesDisplacement( gl_Position.xyz ); \n' +
+        '  gl_Position =mvpMatrix* gl_Position;\n' +
+        '  v_TexCoord =a_TexCoord;\n' +  
         '  gl_PointSize = 2.0;\n' +
         '}\n';
 
@@ -131,7 +155,7 @@
         // Specify the color for clearing <canvas>
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
-        angel += 0.1;
+        angel += 0.001;
         // Clear <canvas>
     
         //gl.enableVertexAttribArray(a_TexCoord);
@@ -146,8 +170,8 @@
 
 
 
-        var points = 1;
-        gl.drawArrays(points == 0 ? gl.POINTS : (points == 1 ? gl.TRIANGLES : (points == 2 ? gl.TRIANGLE_STRIP : gl.LINES)), 0, data.length / 2);
+        var points = 0;
+        gl.drawArrays(points == 3 ? gl.POINTS : (points == 1 ? gl.TRIANGLES : (points == 2 ? gl.TRIANGLE_STRIP : gl.LINES)), 0, data.length / 2);
         requestAnimationFrame(render);
     }
     function init_image() {
@@ -222,14 +246,19 @@
     var data = compile_triangles(triangles);
     console.log(coords_data);
     var matrix = new Matrix4();
-    matrix.setRotate(10, 1, 0, 0);
-    var view_matrix = new Matrix4();
-    view_matrix.setLookAt(0, 0,0.25, 0, 0,0,0,1,0);
 
+    var view_matrix = new Matrix4();
+    view_matrix.setLookAt(0, 0, 0.25, 0, 0, 0, 0, 1, 0);
+    view_matrix.setRotate(0, 0, 0, 1);
+    view_matrix.setRotate(20, 1, 0, 0);
+  
+    //view_matrix.invert();
+
+    //matrix = matrix.multiply(view_matrix.invert());
     var mvp_martrix = view_matrix.multiply(matrix);
     var angel = 0.0;
     function mesh() {
-        var detailX = 50, detailY = 50;
+        var detailX = 150, detailY = 150;
         for (var y = 0; y <= detailY ; y += 1) {
             var t = y / detailY ;
             for (var x = 0; x <= detailX; x += 1) {
