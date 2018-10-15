@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿.<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -24,7 +24,7 @@
 
     function pickOctant(i) {
 
-        return [((i & 1) * 2 - 1) *1, ((i & 2) - 1) * 1, ((i & 4) / 2 - 1) * 1];
+        return [((i & 1) * 2 - 1) * 1, ((i & 2) - 1) * 1, ((i & 4) / 2 - 1) * 1];
     }
     var cubeMesh = function (gl) {
 
@@ -69,12 +69,12 @@
                 if (cube.coords) cube.coords.push([j & 1, (j & 2) / 2]);
                 if (cube.normals) cube.normals.push(data.slice(4, 7));
             }
-            cube.triangles.push([v , (v + 1) , (v + 2) ]);
-            cube.triangles.push([(v + 2) , (v + 1), (v + 3)]);
+            cube.triangles.push([v, (v + 1), (v + 2)]);
+            cube.triangles.push([(v + 2), (v + 1), (v + 3)]);
         }
         cube.triangles.splice(4, 2);
- 
-    
+
+
         console.log(cube);
     };
 
@@ -104,7 +104,7 @@
                             console.log(ImageArray[0]);
                             _super.id = gl.createTexture();
                             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
-                            _super.bind();
+                            _super.bind(1);
                             gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
                             gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
                             gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -146,19 +146,19 @@
             return;
         console.log("wahaha")
         gl.useProgram(this.cm.programe);
-        gl.uniform1i(this.cm.sky, 0);
+        gl.uniform1i(this.cm.sky, 1);
         gl.uniformMatrix4fv(this.cm.mvpMatrix, false, mvp_martrix.elements);
         gl.enableVertexAttribArray(this.cm.a_Position);
 
         // Bind the buffer object to target
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer );
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.vertexBuffer);
         // Write date into the buffer object
 
         gl.bufferData(gl.ARRAY_BUFFER, this.data_cube, gl.STATIC_DRAW);
         gl.vertexAttribPointer(this.cm.a_Position, 3, gl.FLOAT, false, 0, 0);
 
-        var points =0;
-        gl.drawArrays(points == 1 ? gl.POINTS : (points == 0 ? gl.TRIANGLES : (points == 2 ? gl.TRIANGLE_STRIP : gl.LINES)), 0, this.data_cube.length/3);
+        var points = 0;
+        gl.drawArrays(points == 1 ? gl.POINTS : (points == 0 ? gl.TRIANGLES : (points == 2 ? gl.TRIANGLE_STRIP : gl.LINES)), 0, this.data_cube.length / 3);
     };
 
 </script>
@@ -180,19 +180,30 @@
         'uniform mat4 mvpMatrix;\n' +
         'attribute vec2 a_TexCoord;\n' +
         'varying vec2 v_TexCoord;\n' +
+        'varying vec3 ray;\n' +
+        'varying vec3 position;\n' +
+        'varying mat4 mvp;\n' +
 
-
+        'vec3 CalculateNormal (vec3 origin) { \n' +
+        '  vec3 rtn =vec3(origin.x,origin.y,origin.z);\n' +
+        '  vec4 w =190.0* PI / _L;\n' +
+        '  vec4 psi=5.0 *_S * 3.0 * PI / _L;\n' +
+        '  vec4 phase= w * _Dx *  -origin.x + w * _Dz *  -origin.y+ psi * a_angel*12.0;\n' +
+        '  vec4 cosp=vec4(cos(phase.x), cos(phase.y), cos(phase.z), cos(phase.w)) ;\n' +
+        ' float result=dot(_A ,cosp);\n'+
+        'return vec3(result,result,-1);\n' +
+        '}\n' +
 
         'vec3 CalculateWavesDisplacement(vec3 origin) { \n' +
         '  vec3 rtn =vec3(origin.x,origin.y,origin.z);\n' +
-        '  vec4 w =190.* PI / _L;\n' +
+        '  vec4 w =190.0* PI / _L;\n' +
         '  vec4 psi=5.0 *_S * 3.0 * PI / _L;\n' +
         '  vec4 phase= w * _Dx *  -origin.x + w * _Dz *  -origin.y+ psi * a_angel*12.0;\n' +
         '  vec4 sinp=vec4(sin(phase.x), sin(phase.y), sin(phase.z), sin(phase.w)) ;\n' +
         '  vec4 cosp=vec4(cos(phase.x), cos(phase.y), cos(phase.z), cos(phase.w)) ;\n' +
-        '  rtn.x =origin.x- dot(_Q*_A*_Dx, cosp);\n' +
-        '  rtn.y =origin.y+ dot(_Q*_A*_Dz, cosp);\n' +
-        '  rtn.z =origin.z-dot(_A, sinp);\n' +
+     //   '  rtn.x =origin.x- dot(_Q*_A*_Dx, cosp);\n' +
+       // '  rtn.y =origin.y+ dot(_Q*_A*_Dz, cosp);\n' +
+        '  rtn.z =dot(_A, sinp);\n' +
         ' return rtn;\n' +
         '}\n' +
 
@@ -200,10 +211,16 @@
 
         '  gl_Position = a_Position;\n' +
         '  //gl_Position.z = gl_Position.z+ sin(a_angel*PI*0.1+((a_Position.y*2.1)+1.0))*0.2;\n' +
-        '  gl_Position.xyz =CalculateWavesDisplacement( gl_Position.xyz ); \n' +
-        '  gl_Position =mvpMatrix* gl_Position;\n' +
+
+
         '  v_TexCoord =a_TexCoord;\n' +
+                '  gl_Position.xyz =CalculateWavesDisplacement( gl_Position.xyz ); \n' +
+        '  ray =CalculateNormal( gl_Position.xyz );\n' +
+        '  position= gl_Position.xyz;\n' +
+        '  gl_Position =mvpMatrix* gl_Position;\n' +
         '  gl_PointSize = 2.0;\n' +
+        '   mvp =  mvpMatrix;\n' +
+       
         '}\n';
 
     // Fragment shader program
@@ -216,19 +233,23 @@
         'const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);\n' +
         'uniform sampler2D u_Sampler;\n' +
         'varying vec2 v_TexCoord;\n' +
+        'varying vec3 ray;\n' +
+        'varying vec3 position;\n' +
         'uniform samplerCube sky;\n' +
-
-        ' //vec3 getSurfaceRayColor(vec3 point) { \n' +
-
-        '//}\n' +
-
-
-
-
+        'varying mat4 mvp;\n' +
         'void main() {\n' +
-        ' vec4 info = texture2D(u_Sampler, v_TexCoord);\n' +
+        'vec3 incomingRay= normalize(position- vec3(0, 0,2.0));\n' +
+        'vec3 normal = normalize(ray);\n' +
+        'vec3 reflectedRay = reflect(incomingRay,normal).xyz; \n' +
+        'vec3 refractedRay = refract(incomingRay,normal, 0.2).xyz; \n' +
+        'reflectedRay.z -=0.5; \n' +
+        ' vec3 reflectedColor =textureCube(sky,  reflectedRay).rgb; \n' +
+       
+        //'vec3 refractedColor=textureCube(sky,refractedRay).rgb; \n' +
+      //  ' vec4 info = vec4(mix(reflectedColor,refractedColor,1.0).rgb,1.0);\n' +
+            ' vec4 info = vec4(reflectedColor.rgb,1.0);\n' +
         '  gl_FragColor =info;\n' +
-        '}\n';
+        '}\n';//vec4 info = texture2D(u_Sampler, v_TexCoord);
 
     var canvas = document.getElementById('webgl');
     // Get the rendering context for WebGL
@@ -272,12 +293,12 @@
         //   return;
 
     }
-    //var sky = gl.getUniformLocation(waterProgram, 'sky');
-    //if (sky < 0) {
-    //    console.log('Failed to get the storage location of sky');
-    //    //   return;
+    var sky = gl.getUniformLocation(waterProgram, 'sky');
+    if (sky < 0) {
+        console.log('Failed to get the storage location of sky');
+        //   return;
 
-    //}
+    }
     var texture = init_image();
 
     console.log(a_angel);
@@ -285,8 +306,18 @@
 
     var coordBuffer = gl.createBuffer();
     function render() {
+        if (!cm.cm.ready_state) {
+            requestAnimationFrame(render);
+            return;
+        }
+        // Specify the color for clearing <canvas>
+        gl.enable(gl.DEPTH_TEST);
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        cm.render();
         gl.useProgram(waterProgram);
         gl.uniform1i(u_Sampler, 0);
+        gl.uniform1i(sky, 1);
         gl.enableVertexAttribArray(a_Position);
         gl.enableVertexAttribArray(a_TexCoord);
         //gl.vertexAttribPointer(a_TexCoord, 2, gl.FLOAT, false, 0, 0);
@@ -326,10 +357,7 @@
 
 
 
-        // Specify the color for clearing <canvas>
-        gl.enable(gl.DEPTH_TEST);
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+
         angel += 0.001;
 
         // Clear <canvas>
@@ -346,7 +374,7 @@
 
 
 
-        var points = 0;
+        var points = 1;
         gl.drawArrays(points == 3 ? gl.POINTS : (points == 1 ? gl.TRIANGLES : (points == 2 ? gl.TRIANGLE_STRIP : gl.LINES)), 0, data.length / 2);
         cm.render();
         requestAnimationFrame(render);
@@ -437,9 +465,9 @@
 
     var projMatrix = new Matrix4();  // The projection matrix
     var view_matrix = new Matrix4();
-    view_matrix = view_matrix.lookAt(0, 0, 2.3, 0, 0, -1, 0, 1, 0);
-    view_matrix.rotate(-72, 1, 0, 0).rotate(0, 0, 0, 1);
-    // view_matrix.setRotate(-50, 1, 0, 0);
+    view_matrix = view_matrix.lookAt(0, 0,2.0, 0, 0, -1, 0, 1, 0);
+    view_matrix.rotate(-73, 1, 0, 0).rotate(0, 0, 0, 1);
+    //view_matrix.setRotate(-50, 1, 0, 0);
     projMatrix.setPerspective(60.0, canvas.width / canvas.height, 1.0, 100.0);
     //view_matrix.invert();
 
