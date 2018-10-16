@@ -62,12 +62,11 @@
   ';//    gl_FragColor=vec4(textureCube(sky, ray).rgb ,1.0);
         this.ready_state = false;
         this.programe = createProgram(gl, vs, fs);
-        var a_angel =
         this.mvpMatrix = gl.getUniformLocation(this.programe, 'mvpMatrix');
         this.lightMatrix = gl.getUniformLocation(this.programe, 'lightMatrix');
         this.a_Position = gl.getAttribLocation(this.programe, 'a_Position');
         this.sky = gl.getUniformLocation(this.programe, 'sky');
-        
+
         var cube = this.cube = {};
         cube.vertices = [];
         cube.coords = [];
@@ -97,7 +96,7 @@
         ImageArray = [];
 
 
-        ;
+ 
 
         // Initialize shaders
         var waterProgram = createProgram(gl, VSHADER_SOURCE, FSHADER_SOURCE);
@@ -205,7 +204,7 @@
         '  vec4 psi=5.0 *_S * 3.0 * PI / _L;\n' +
         '  vec4 phase= w * _Dx *  -origin.x + w * _Dz *  -origin.y+ psi * a_angel*12.0;\n' +
         '  vec4 cosp=vec4(cos(phase.x), cos(phase.y), cos(phase.z), cos(phase.w)) ;\n' +
-        ' float result=dot(_A ,cosp);\n'+
+        ' float result=dot(_A ,cosp);\n' +
         'return vec3(result,result,-1);\n' +
         '}\n' +
 
@@ -216,8 +215,8 @@
         '  vec4 phase= w * _Dx *  -origin.x + w * _Dz *  -origin.y+ psi * a_angel*12.0;\n' +
         '  vec4 sinp=vec4(sin(phase.x), sin(phase.y), sin(phase.z), sin(phase.w)) ;\n' +
         '  vec4 cosp=vec4(cos(phase.x), cos(phase.y), cos(phase.z), cos(phase.w)) ;\n' +
-     //   '  rtn.x =origin.x- dot(_Q*_A*_Dx, cosp);\n' +
-       // '  rtn.y =origin.y+ dot(_Q*_A*_Dz, cosp);\n' +
+        //   '  rtn.x =origin.x- dot(_Q*_A*_Dx, cosp);\n' +
+        // '  rtn.y =origin.y+ dot(_Q*_A*_Dz, cosp);\n' +
         '  rtn.z =dot(_A, sinp);\n' +
         ' return rtn;\n' +
         '}\n' +
@@ -229,14 +228,14 @@
 
 
         '  v_TexCoord =a_TexCoord;\n' +
-                '  gl_Position.xyz =CalculateWavesDisplacement( gl_Position.xyz ); \n' +
+        '  gl_Position.xyz =CalculateWavesDisplacement( gl_Position.xyz ); \n' +
         '  ray =CalculateNormal( gl_Position.xyz );\n' +
         '  position= gl_Position.xyz;\n' +
         '  gl_Position =mvpMatrix* gl_Position;\n' +
         '  gl_PointSize = 2.0;\n' +
         '   mvp =  mvpMatrix;\n' +
         '   light_mvp = lightMatrix;\n' +
-    
+
         '}\n';
 
     // Fragment shader program
@@ -264,7 +263,7 @@
         'reflectedRay.z -=0.5; \n' +
         'refractedRay.z +=0.5; \n' +
         ' vec3 reflectedColor =textureCube(sky,  reflectedRay).rgb*0.5; \n' +
-   
+
         'vec3 refractedColor=textureCube(sky,refractedRay).rgb*0.5; \n' +
         //' reflectedColor+=0.9 ;\;\n' +
         'vec3 light = (light_mvp * vec4(vec3(0.4, 1.6, 1.5), 1.0)).xyz; \n' +
@@ -274,8 +273,8 @@
         ' vec4 info = vec4(mix(reflectedColor,refractedColor,(1.0 - fresnel) * length(refractedRay)).rgb,1.0);\n' +
 
 
-       
-         // ' vec4 info = vec4( refractedColor.rgb,1.0);\n' +
+
+        // ' vec4 info = vec4( refractedColor.rgb,1.0);\n' +
         '  gl_FragColor =info;\n' +
         '}\n';//vec4 info = texture2D(u_Sampler, v_TexCoord);
 
@@ -328,7 +327,7 @@
 
     }
     var lightMatrix = gl.getUniformLocation(waterProgram, 'lightMatrix');
-    if (lightMatrix< 0) {
+    if (lightMatrix < 0) {
         console.log('Failed to get the storage location of lightMatrix');
         //   return;
 
@@ -405,7 +404,7 @@
 
         gl.uniformMatrix4fv(mvpMatrix, false, mvp_martrix.elements);
         gl.uniformMatrix4fv(lightMatrix, false, lightmatrix.elements);
-        
+
         gl.vertexAttrib1f(a_angel, angel);
 
 
@@ -502,7 +501,7 @@
 
     var projMatrix = new Matrix4();  // The projection matrix
     var view_matrix = new Matrix4();
-    view_matrix = view_matrix.lookAt(0, 0,2.0, 0, 0, -1, 0, 1, 0);
+    view_matrix = view_matrix.lookAt(0, 0, 2.0, 0, 0, -1, 0, 1, 0);
     view_matrix.rotate(-73, 1, 0, 0).rotate(0, 0, 0, 1);
     //view_matrix.setRotate(-50, 1, 0, 0);
     projMatrix.setPerspective(60.0, canvas.width / canvas.height, 1.0, 100.0);
