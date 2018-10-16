@@ -47,7 +47,10 @@
            varying vec3 ray;\
     varying vec3 position;\
     void main() {\
-       gl_FragColor= gl_FragColor=vec4(textureCube(sky, ray).rgb ,1.0);\
+        vec3 info=textureCube(sky, ray).rgb;\
+         info*=0.5;\
+         info+=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2), ray)),0.3)) * vec3(1.0, 1.0, 1.0)*0.5;\
+       gl_FragColor=vec4(info,1.0);\
     }\
   ';//    gl_FragColor=vec4(textureCube(sky, ray).rgb ,1.0);
         this.ready_state = false;
@@ -230,7 +233,9 @@
         'precision mediump float;\n' +
         '#endif\n' +
         'const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);\n' +
-        'const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);\n' +
+        'const vec3 underwaterColor = vec3(0.2, 0.2, 1.0);\n' +
+        'const float IOR_AIR = 1.0;\n' +
+        'const float IOR_WATER = 1.333;\n' +
         'uniform sampler2D u_Sampler;\n' +
         'varying vec2 v_TexCoord;\n' +
         'varying vec3 ray;\n' +
@@ -241,13 +246,21 @@
         'vec3 incomingRay= normalize(position- vec3(0, 0,2.0));\n' +
         'vec3 normal = normalize(ray);\n' +
         'vec3 reflectedRay = reflect(incomingRay,normal).xyz; \n' +
-        'vec3 refractedRay = refract(incomingRay,normal, 0.2).xyz; \n' +
+        'vec3 refractedRay = refract(incomingRay,-normal,IOR_WATER / IOR_AIR).xyz; \n' +
         'reflectedRay.z -=0.5; \n' +
-        ' vec3 reflectedColor =textureCube(sky,  reflectedRay).rgb; \n' +
+        'refractedRay.z +=0.5; \n' +
+        ' vec3 reflectedColor =textureCube(sky,  reflectedRay).rgb*0.5; \n' +
+   
+        'vec3 refractedColor=textureCube(sky,refractedRay).rgb*0.5; \n' +
+        //' reflectedColor+=0.9 ;\;\n' +
+        ' reflectedColor+=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2), reflectedRay)),1.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
+        ' refractedColor +=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2),refractedRay)),1.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
+        '  float fresnel = mix(0.5, 1.0, pow(1.0 - dot(-normal, -incomingRay), 2.0));\n' +
+        ' vec4 info = vec4(mix(reflectedColor,refractedColor,(1.0 - fresnel) * length(refractedRay)).rgb,1.0);\n' +
+
+
        
-        //'vec3 refractedColor=textureCube(sky,refractedRay).rgb; \n' +
-      //  ' vec4 info = vec4(mix(reflectedColor,refractedColor,1.0).rgb,1.0);\n' +
-            ' vec4 info = vec4(reflectedColor.rgb,1.0);\n' +
+         // ' vec4 info = vec4( refractedColor.rgb,1.0);\n' +
         '  gl_FragColor =info;\n' +
         '}\n';//vec4 info = texture2D(u_Sampler, v_TexCoord);
 
@@ -312,6 +325,7 @@
         }
         // Specify the color for clearing <canvas>
         gl.enable(gl.DEPTH_TEST);
+        gl.enable(gl.BLEND);
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT);
         cm.render();
@@ -498,7 +512,7 @@
         "./texture/tiles.jpg",
         "./texture/tiles.jpg",
         "./texture/tiles.jpg",
-        "./texture/tiles.jpg",
+        "./texture/timg.jpg",
         "./texture/ypos.jpg",
     ], gl);
 
