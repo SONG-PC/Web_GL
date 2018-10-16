@@ -1,5 +1,4 @@
-﻿
-.<!DOCTYPE html>
+﻿.<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8" />
@@ -33,12 +32,15 @@
     precision mediump float; \
     varying vec3 position;\
     uniform mat4 mvpMatrix;\
+    uniform mat4 lightMatrix;\
     attribute vec4 a_Position;\
     varying vec3 ray;\
+    varying mat4 light_mvp;\
     void main() {\
       position = a_Position.xyz;\
       gl_PointSize = 5.0; \
       ray = position; \
+      light_mvp=lightMatrix;\
       gl_Position =  mvpMatrix* vec4(position, 1.0);\
     }\
   ';//   //
@@ -46,20 +48,26 @@
             precision mediump float; \
          uniform samplerCube sky;\
            varying vec3 ray;\
+            varying mat4 light_mvp;\
     varying vec3 position;\
     void main() {\
         vec3 info=textureCube(sky, ray).rgb;\
+            if(ray.z<1.0){\
          info*=0.5;\
-         info+=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2), ray)),0.3)) * vec3(1.0, 1.0, 1.0)*0.5;\
+         vec3 light= (light_mvp*vec4(vec3(0.4, 1.6, 1.5),1.0)).xyz;\
+         info+=vec3(pow(max(0.00005, dot(light, ray)),0.3)) * vec3(1.0, 1.0, 1.0)*0.5;\
+        }\
        gl_FragColor=vec4(info,1.0);\
     }\
   ';//    gl_FragColor=vec4(textureCube(sky, ray).rgb ,1.0);
         this.ready_state = false;
         this.programe = createProgram(gl, vs, fs);
         var a_angel =
-            this.mvpMatrix = gl.getUniformLocation(this.programe, 'mvpMatrix');
+        this.mvpMatrix = gl.getUniformLocation(this.programe, 'mvpMatrix');
+        this.lightMatrix = gl.getUniformLocation(this.programe, 'lightMatrix');
         this.a_Position = gl.getAttribLocation(this.programe, 'a_Position');
         this.sky = gl.getUniformLocation(this.programe, 'sky');
+        
         var cube = this.cube = {};
         cube.vertices = [];
         cube.coords = [];
@@ -151,7 +159,9 @@
         console.log("wahaha")
         gl.useProgram(this.cm.programe);
         gl.uniform1i(this.cm.sky, 1);
+        lightmatrix.rotate(0.1, 0.0, 0, 1);
         gl.uniformMatrix4fv(this.cm.mvpMatrix, false, mvp_martrix.elements);
+        gl.uniformMatrix4fv(this.cm.lightMatrix, false, lightmatrix.elements);
         gl.enableVertexAttribArray(this.cm.a_Position);
 
         // Bind the buffer object to target
@@ -182,12 +192,13 @@
         'attribute vec4 a_Position;\n' +
         'attribute float a_angel;\n' +
         'uniform mat4 mvpMatrix;\n' +
+        'uniform mat4 lightMatrix;\n' +
         'attribute vec2 a_TexCoord;\n' +
         'varying vec2 v_TexCoord;\n' +
         'varying vec3 ray;\n' +
         'varying vec3 position;\n' +
         'varying mat4 mvp;\n' +
-
+        'varying mat4 light_mvp;\n' +
         'vec3 CalculateNormal (vec3 origin) { \n' +
         '  vec3 rtn =vec3(origin.x,origin.y,origin.z);\n' +
         '  vec4 w =190.0* PI / _L;\n' +
@@ -224,7 +235,8 @@
         '  gl_Position =mvpMatrix* gl_Position;\n' +
         '  gl_PointSize = 2.0;\n' +
         '   mvp =  mvpMatrix;\n' +
-       
+        '   light_mvp = lightMatrix;\n' +
+    
         '}\n';
 
     // Fragment shader program
@@ -243,6 +255,7 @@
         'varying vec3 position;\n' +
         'uniform samplerCube sky;\n' +
         'varying mat4 mvp;\n' +
+        'varying mat4 light_mvp;\n' +
         'void main() {\n' +
         'vec3 incomingRay= normalize(position- vec3(0, 0,2.0));\n' +
         'vec3 normal = normalize(ray);\n' +
@@ -254,8 +267,9 @@
    
         'vec3 refractedColor=textureCube(sky,refractedRay).rgb*0.5; \n' +
         //' reflectedColor+=0.9 ;\;\n' +
-        ' reflectedColor+=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2), reflectedRay)),1.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
-        ' refractedColor +=vec3(pow(max(0.00005, dot(vec3(0.5, 1.6, 1.2),refractedRay)),1.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
+        'vec3 light = (light_mvp * vec4(vec3(0.4, 1.6, 1.5), 1.0)).xyz; \n' +
+        ' reflectedColor+=vec3(pow(max(0.00005, dot( light, reflectedRay)),0.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
+        ' refractedColor +=vec3(pow(max(0.00005, dot( light,refractedRay)),0.5)) * vec3(1.0, 1.0, 1.0)*0.5;\n' +
         '  float fresnel = mix(0.5, 1.0, pow(1.0 - dot(-normal, -incomingRay), 2.0));\n' +
         ' vec4 info = vec4(mix(reflectedColor,refractedColor,(1.0 - fresnel) * length(refractedRay)).rgb,1.0);\n' +
 
@@ -310,6 +324,12 @@
     var sky = gl.getUniformLocation(waterProgram, 'sky');
     if (sky < 0) {
         console.log('Failed to get the storage location of sky');
+        //   return;
+
+    }
+    var lightMatrix = gl.getUniformLocation(waterProgram, 'lightMatrix');
+    if (lightMatrix< 0) {
+        console.log('Failed to get the storage location of lightMatrix');
         //   return;
 
     }
@@ -384,6 +404,8 @@
 
 
         gl.uniformMatrix4fv(mvpMatrix, false, mvp_martrix.elements);
+        gl.uniformMatrix4fv(lightMatrix, false, lightmatrix.elements);
+        
         gl.vertexAttrib1f(a_angel, angel);
 
 
@@ -475,7 +497,7 @@
     var data = compile_triangles(triangles);
 
     var matrix = new Matrix4();
-
+    var lightmatrix = new Matrix4();
     matrix.set(matrix);
 
     var projMatrix = new Matrix4();  // The projection matrix
